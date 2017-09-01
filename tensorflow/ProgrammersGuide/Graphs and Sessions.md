@@ -118,7 +118,23 @@ skip! [link](https://www.tensorflow.org/programmers_guide/graphs#placing_operati
 
 ## Tensor-like Objects
 
+API 사용성의 편의를 위해, tensorflow 함수들은 Tensor-like object들을 인자로 받아 암묵적으로 [`tf.convert_to_tensor`](https://www.tensorflow.org/api_docs/python/tf/convert_to_tensor)를 이용해 `tf.Tensor`로 변환한다.
 
+
+
+Tensor-like Objects의 종류들:
+
+* `tf.Tensor`
+* `tf.Variable`
+* `numpy.ndarray`
+* `list`(and lists of tensor-like objects)
+* Scala Python types: `bool`, `flaot`, `int`, `str`
+
+
+
+사용자가 [`tf.register_tensor_conversion_function`](https://www.tensorflow.org/api_docs/python/tf/register_tensor_conversion_function)를 이용하여 직접 정의할 수도 있음.
+
+*만일 tensor-like object의 크기가 커서 계속 tf.Tensor로 변환하는 것이 부담된다면 직접 `tf.convert_to_tensor`를 호출하여 미리 `tf.Tensor`로 변환할 수 있음*
 
 
 

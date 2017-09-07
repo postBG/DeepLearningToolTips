@@ -140,3 +140,6 @@ Tensor-like Objects의 종류들:
 
 ## Executing a graph in a `tf.Session`
 
+`tf.Session`은 client code(예를 들면 python code)와 tensorflow graph를 연결하는 역할을 한다.
+
+`tf.Session`은 device에 접근하거나 `tf.Graph`를 cache하여 같은 연산을 효율적으로 반복할 수 있게 해준다.

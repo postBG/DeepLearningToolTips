@@ -143,3 +143,43 @@ Tensor-like Objects의 종류들:
 `tf.Session`은 client code(예를 들면 python code)와 tensorflow graph를 연결하는 역할을 한다.
 
 `tf.Session`은 device에 접근하거나 `tf.Graph`를 cache하여 같은 연산을 효율적으로 반복할 수 있게 해준다.
+
+
+
+### Creating a `tf.Session`
+
+```python
+# Create a default in-process session.
+with tf.Session() as sess:
+  # ...
+
+# Create a remote session.
+with tf.Session("grpc://example.org:2222"):
+  # ...
+```
+
+`tf.Session`은 physical resource(네트워크 커넥션이나 GPU, CPU 등)들을 직접 소유하고 있기 때문에, 블록을 빠져나가면 알아서 종료되는 context manager(`with`문)과 함께 사용된다. 만일 context manager를 사용하고 싶지 않으면 명시적으로 `tf.Session.close`를 호출해줘야 함.
+
+*__**Note**__ 더 High-level API들(예를 들면,  [`tf.train.MonitoredTrainingSession`](https://www.tensorflow.org/api_docs/python/tf/train/MonitoredTrainingSession) or [`tf.estimator.Estimator`](https://www.tensorflow.org/api_docs/python/tf/estimator/Estimator))들은 스스로 `tf.Session`을 생성하고 관리한다. 이러한 API는 __**target**__과 __**config**__를 입력받아 작동하는데 직접 인자로 넘길 수도 있고, [`tf.estimator.RunConfig`](https://www.tensorflow.org/api_docs/python/tf/estimator/RunConfig)를 통해서 넘길 수도 있다.*
+
+`tf.Session.__init__`는 3가지의 선택적인 인자를 받음:
+
+* **target**
+  * *Default:* 이 인자가 비어있으면(=default) local machine에 있는 device만 사용.
+  * 하지만 `grpc://`와 같은 형식으로 device를 제공하는 Tensorflow Server를 지정할 수도 있다.
+* **graph**
+  * *Default:* 새 Session은 오직 현재의 default graph에 bound된다.
+  * 만일 여러 개의 Graph들을 다루는 경우([Programming with multiple graphs](https://www.tensorflow.org/programmers_guide/programming-with-multiple-graphs) 참고)에는 session을 생성할 때 지정할 수 있다.
+* **config** 
+  * [`tf.ConfigProto`](https://www.tensorflow.org/api_docs/python/tf/ConfigProto)을 지정할 수 있게 해주는 옵션
+
+
+
+### Using [`tf.Session.run`](https://www.tensorflow.org/api_docs/python/tf/Session#run) to execute operations
+
+`tf.Session.run`은 `tf.Operation`과 `tf.Tensor`를 계산하는 주된 매커니즘이다. `tf.Session.run`에 하나 이상의 `tf.Operation`과 `tf.Tensor`를 넘기면 Tensorflow는 결과를 계산하는데 필요한 operation들을 실행한다.
+
+
+
+
+

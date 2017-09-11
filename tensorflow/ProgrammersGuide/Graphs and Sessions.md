@@ -181,5 +181,77 @@ with tf.Session("grpc://example.org:2222"):
 
 
 
+`tf.Session.run`은 **fetch**들의 list를 요구하는데,  이 **fetch**는 `tf.Operation`, `tf.Tensor`, 혹은 위에서 설명한 tensor-like type이 될 수 있음.
 
+이 **fetch**들은 먼저 return value를 결정하게 되며, 이 return value(=result)를 계산하기 위해 반드시 실행되어야할  **subgraph**를 전체 `tf.Graph` 추려내고 실행되도록 한다.
+
+```python
+x = tf.constant([[37.0, -23.0], [1.0, 4.0]])
+w = tf.Variable(tf.random_uniform([2, 2]))
+y = tf.matmul(x, w)
+output = tf.nn.softmax(y)
+init_op = w.initializer
+
+with tf.Session() as sess:
+  # Run the initializer on `w`.
+  sess.run(init_op)
+
+  # Evaluate `output`. `sess.run(output)` will return a NumPy array containing
+  # the result of the computation.
+  print(sess.run(output))
+
+  # Evaluate `y` and `output`. Note that `y` will only be computed once, and its
+  # result used both to return `y_val` and as an input to the `tf.nn.softmax()`
+  # op. Both `y_val` and `output_val` will be NumPy arrays.
+  y_val, output_val = sess.run([y, output])
+```
+
+
+
+`tf.Session.run`은 선택적으로 dictionary of **feeds**를 입력으로 받을 수 있다. 이 **feed**들은 그래프가 실행되는 시점에  `tf.Tensor`객체(주로 `tf.placeholder`)와 값을 연결하는 역할을 한다. 즉, `tf.Tensor`는 **feed**로 받은 값으로 대체되어 실행된다.
+
+```python
+# Define a placeholder that expects a vector of three floating-point values,
+# and a computation that depends on it.
+x = tf.placeholder(tf.float32, shape=[3])
+y = tf.square(x)
+
+with tf.Session() as sess:
+  # Feeding a value changes the result that is returned when you evaluate `y`.
+  print(sess.run(y, {x: [1.0, 2.0, 3.0]})  # => "[1.0, 4.0, 9.0]"
+  print(sess.run(y, {x: [0.0, 0.0, 5.0]})  # => "[0.0, 0.0, 25.0]"
+
+  # Raises `tf.errors.InvalidArgumentError`, because you must feed a value for
+  # a `tf.placeholder()` when evaluating a tensor that depends on it.
+  sess.run(y)
+
+  # Raises `ValueError`, because the shape of `37.0` does not match the shape
+  # of placeholder `x`.
+  sess.run(y, {x: 37.0})
+```
+
+
+
+`tf.Session.run`은 호출에 대한 option을 줄 수 있는 `options`와 실행에 대한 meta정보를 얻을 수 있게 해주는  `run_metadata`라는 인자도 선택적으로 받을 수 있다. 예를 들어, 이 두가지 인자를 조합하여 'collect tracing information about the execution'를 할 수 있다.
+
+```python
+y = tf.matmul([[37.0, -23.0], [1.0, 4.0]], tf.random_uniform([2, 2]))
+
+with tf.Session() as sess:
+  # Define options for the `sess.run()` call.
+  options = tf.RunOptions()
+  options.output_partition_graphs = True
+  options.trace_level = tf.RunOptions.FULL_TRACE
+
+  # Define a container for the returned metadata.
+  metadata = tf.RunMetadata()
+
+  sess.run(y, options=options, run_metadata=metadata)
+
+  # Print the subgraphs that executed on each device.
+  print(metadata.partition_graphs)
+
+  # Print the timings of each operation that executed.
+  print(metadata.step_stats)
+```
 

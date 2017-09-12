@@ -134,7 +134,7 @@ Tensor-like Objects의 종류들:
 
 사용자가 [`tf.register_tensor_conversion_function`](https://www.tensorflow.org/api_docs/python/tf/register_tensor_conversion_function)를 이용하여 직접 정의할 수도 있음.
 
-*만일 tensor-like object의 크기가 커서 계속 tf.Tensor로 변환하는 것이 부담된다면 직접 `tf.convert_to_tensor`를 호출하여 미리 `tf.Tensor`로 변환할 수 있음*
+> 만일 tensor-like object의 크기가 커서 계속 tf.Tensor로 변환하는 것이 부담된다면 직접 `tf.convert_to_tensor`를 호출하여 미리 `tf.Tensor`로 변환할 수 있음
 
 
 
@@ -160,7 +160,11 @@ with tf.Session("grpc://example.org:2222"):
 
 `tf.Session`은 physical resource(네트워크 커넥션이나 GPU, CPU 등)들을 직접 소유하고 있기 때문에, 블록을 빠져나가면 알아서 종료되는 context manager(`with`문)과 함께 사용된다. 만일 context manager를 사용하고 싶지 않으면 명시적으로 `tf.Session.close`를 호출해줘야 함.
 
-*__**Note**__ 더 High-level API들(예를 들면,  [`tf.train.MonitoredTrainingSession`](https://www.tensorflow.org/api_docs/python/tf/train/MonitoredTrainingSession) or [`tf.estimator.Estimator`](https://www.tensorflow.org/api_docs/python/tf/estimator/Estimator))들은 스스로 `tf.Session`을 생성하고 관리한다. 이러한 API는 __**target**__과 __**config**__를 입력받아 작동하는데 직접 인자로 넘길 수도 있고, [`tf.estimator.RunConfig`](https://www.tensorflow.org/api_docs/python/tf/estimator/RunConfig)를 통해서 넘길 수도 있다.*
+> __**Note**__ 
+>
+> 더 High-level API들(예를 들면,  [`tf.train.MonitoredTrainingSession`](https://www.tensorflow.org/api_docs/python/tf/train/MonitoredTrainingSession) or [`tf.estimator.Estimator`](https://www.tensorflow.org/api_docs/python/tf/estimator/Estimator))들은 스스로 `tf.Session`을 생성하고 관리한다. 이러한 API는 __**target**__과 __**config**__를 입력받아 작동하는데 직접 인자로 넘길 수도 있고, [`tf.estimator.RunConfig`](https://www.tensorflow.org/api_docs/python/tf/estimator/RunConfig)를 통해서 넘길 수도 있다.
+
+
 
 `tf.Session.__init__`는 3가지의 선택적인 인자를 받음:
 
@@ -254,4 +258,37 @@ with tf.Session() as sess:
   # Print the timings of each operation that executed.
   print(metadata.step_stats)
 ```
+
+
+
+### Visualizing your graph
+
+Tensorflow는 Tensorboard의 컴포넌트인 **graph visualizer**를 통해 그래프를 시각화해준다. 가장 간단한 시각화 방법은 [`tf.summary.FileWriter`](https://www.tensorflow.org/api_docs/python/tf/summary/FileWriter)를 생성할 때, [`tf.Graph`](https://www.tensorflow.org/api_docs/python/tf/Graph)를 넘기는 것이다.
+
+```python
+# Build your graph.
+x = tf.constant([[37.0, -23.0], [1.0, 4.0]])
+w = tf.Variable(tf.random_uniform([2, 2]))
+y = tf.matmul(x, w)
+# ...
+loss = ...
+train_op = tf.train.AdagradOptimizer(0.01).minimize(loss)
+
+with tf.Session() as sess:
+  # `sess.graph` provides access to the graph used in a `tf.Session`.
+  writer = tf.summary.FileWriter("/tmp/log/...", sess.graph)
+
+  # Perform your computation...
+  for i in range(1000):
+    sess.run(train_op)
+    # ...
+
+  writer.close()
+```
+
+이렇게 한 뒤에 tensorboard의  Graph 탭에서 그래프를 볼 수 있음.
+
+
+
+## Programming with multiple graphs
 

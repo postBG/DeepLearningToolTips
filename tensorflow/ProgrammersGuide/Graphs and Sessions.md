@@ -292,3 +292,13 @@ with tf.Session() as sess:
 
 ## Programming with multiple graphs
 
+> **Note**
+>
+> Model을 학습시킬 때, 많이 쓰이는 방식은 training에 사용할 그래프와 evaluating이나 performing inference에 사용할 그래프를 분리하는 것이다.
+>
+> 왜냐하면 dropout이나 batch normalization같은 메커니즘으로 인해 training graph와 inference graph는 서로 다르게 생긴 경우가 대다수이기 때문이다.
+>
+> 게다가 [`tf.train.Saver`](https://www.tensorflow.org/api_docs/python/tf/train/Saver)같은 유틸리티는 저장된 checkpoint로부터 모델을 복구할 때 기본적으로 [`tf.Variable`](https://www.tensorflow.org/api_docs/python/tf/Variable) 객체의 이름을 사용하기 때문에, 위와 같은 방식으로 코드를 구성한다면 training과 inference를 다른 프로세스에서  수행할 수도 있고, 같은 프로세스에서 여러 모델을 사용할 수도 있다.
+>
+> 이 섹션은 같은 프로세스에서 여러 모델을 사용하는 방법을 다룬다.
+

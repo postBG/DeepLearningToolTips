@@ -302,3 +302,47 @@ with tf.Session() as sess:
 >
 > 이 섹션은 같은 프로세스에서 여러 모델을 사용하는 방법을 다룬다.
 
+대부분의 어플리케이션에서는 Tensorflow가 기본으로 제공하는 **default graph**만으로도 충분하겠지만, Tensorflow는 default graph를 조작할 수 있는 방법들도 제공한다.
+
+* [`tf.Graph`](https://www.tensorflow.org/api_docs/python/tf/Graph)는 앞에서 언급했다시피 [`tf.Operation`](https://www.tensorflow.org/api_docs/python/tf/Operation) 객체에 unique한 이름을 붙인다. 만약에 명시적으로 graph를 생성한다면 operation의 이름에 대한 더 많은 control을 가질 수 있다.
+* **default graph**는 자신에게 추가된 모든 [`tf.Operation`](https://www.tensorflow.org/api_docs/python/tf/Operation)와 [`tf.Tensor`](https://www.tensorflow.org/api_docs/python/tf/Tensor)에 대한 정보를 관리한다. 만일 서로 연결되어 있지 않은 여러 개의 subgraph들을 사용한 프로그램을 만든다면 독립된  [`tf.Graph`](https://www.tensorflow.org/api_docs/python/tf/Graph)로 만들어 GC등의 매커니즘의 장점을 더 잘 이용하는 방향이 더 좋다.
+
+
+
+다른 `tf.Graph`를 **default graph**로 사용하고 싶다면, `tf.Graph.as_default` context manager를 사용하면 된다.
+
+```python
+g_1 = tf.Graph()
+with g_1.as_default():
+  # Operations created in this scope will be added to `g_1`.
+  c = tf.constant("Node in g_1")
+
+  # Sessions created in this scope will run operations from `g_1`.
+  sess_1 = tf.Session()
+
+g_2 = tf.Graph()
+with g_2.as_default():
+  # Operations created in this scope will be added to `g_2`.
+  d = tf.constant("Node in g_2")
+
+# Alternatively, you can pass a graph when constructing a `tf.Session`:
+# `sess_2` will run operations from `g_2`.
+sess_2 = tf.Session(graph=g_2)
+
+assert c.graph is g_1
+assert sess_1.graph is g_1
+
+assert d.graph is g_2
+assert sess_2.graph is g_2
+```
+
+
+
+현재의 **default graph**를 얻어오고 싶다면 `tf.get_default_graph`함수를 사용하면 된다.
+
+```python
+# Print all of the operations in the default graph.
+g = tf.get_default_graph()
+print(g.get_operations())
+```
+

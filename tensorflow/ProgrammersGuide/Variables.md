@@ -46,3 +46,57 @@ other_variable = tf.get_variable("other_variable", dtype=tf.int32,
   initializer=tf.constant([23, 42]))
 ```
 
+
+
+### Variable collections
+
+Tensorflow program의 disconnected된 부분에서 variable을 생성하고 싶은 경우가 있을 수 있기 때문에, 모든 변수에 접근할 수 있는 방법이 가끔 필요할 수도 있다. 이것을 위해 Tensorflow는 **collections**라는 것을 제공해주는데, **collections**는 tensor나 variable같은 object를 이름과 함께 저장해둔 리스트이다.
+
+
+
+모든 `tf.Variable`은 기본적으로 아래 두가지 collection에 추가된다.
+
+* `tf.GraphKeys.GLOBAL_VARIABLES`
+  * variables that can be shared across multiple devices
+* `tf.GraphKeys.TRAINABLE_VARIABLES`
+  * variables for which TensorFlow will calculate gradients
+
+
+
+만일 variable이 trainable하지 않게 만들고 싶다면, 아래와 같이 `tf.GraphKeys.LOCAL_VARIABLES`에 variable을 추가하면 된다.
+
+```python
+my_local = tf.get_variable("my_local", shape=(), 
+collections=[tf.GraphKeys.LOCAL_VARIABLES])
+```
+
+혹은 아래와 같이 **trainable=False**를 줄 수도 있다.
+
+```python
+my_non_trainable = tf.get_variable("my_non_trainable", 
+                                   shape=(), 
+                                   trainable=False)
+```
+
+
+
+물론 `tf.add_to_collection`를 이용해 직접 만든 collection에 담을 수도 있다. collection은 명시적으로 생성할 필요 없이 string으로 된 이름을 이용하면 된다.
+
+```pytho
+tf.add_to_collection("my_collection_name", my_local)
+```
+
+
+
+조회는 아래와 같이 실행
+
+```python
+tf.get_collection("my_collection_name")
+```
+
+
+
+### Device placement
+
+생략 [link](https://www.tensorflow.org/programmers_guide/variables#device_placement)
+

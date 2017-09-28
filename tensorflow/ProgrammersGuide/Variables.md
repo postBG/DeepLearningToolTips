@@ -100,3 +100,87 @@ tf.get_collection("my_collection_name")
 
 생략 [link](https://www.tensorflow.org/programmers_guide/variables#device_placement)
 
+
+
+## Initializing variables
+
+low-level Tensorflow API를 사용하는 경우에 variable을 사용하려면 직접 초기화해줘야 한다. 하지만 `tf.contrib.slim`나 `tf.estimator.Estimator`, `Keras` 같은 High-level API는 자동으로 변수를 초기화해준다.
+
+
+
+물론 직접 손으로 하는 초기화가 귀찮기만한 과정은 아닌게, checkpoint로부터 pretrained된 모델을 로드한다면 비교적 비싼 비용의 연산은 초기화를 생략할 수도 있다.
+
+
+
+사용하는 모든 variable들은 한번에 초기화하고 싶다면, training을 시작하기 전에 `tf.global_variables_initializer()`를 호출하면 된다. 이 함수는 `tf.GraphKeys.GLOBAL_VARIABLES` 콜렉션에 존재하는 모든 variable을 초기화하는 operation을 반환한다. 따라서 아래와 같이 초기화하면 된다.
+
+```python
+session.run(tf.global_variables_initializer())
+# Now all variables are initialized.
+```
+
+
+
+주의해야할 점은 `tf.global_variables_initializer()`은 variable이 초기화되는 순서에 대한 규약은 없기 때문에
+
+서로 의존관계가 있는 variable들의 경우, 초기화 중에 오류가 발생할 수 있다.
+
+따라서 모든 variable이 초기화되지 않은 상태에서 variable의 vaule를 사용해야하는 상황에서는 `variable`대신 `variable.initialized_value()`를 사용하는 것이 좋다.
+
+```python
+v = tf.get_variable("v", shape=(), initializer=tf.zeros_initializer())
+w = tf.get_variable("w", initializer=v.initialized_value() + 1)
+```
+
+
+
+상황에 따라 variable을 프로그래머가 직접 초기화하고 싶을 때도 있을 수 있는데, 이때는 variable의 initializer를 실행하면 된다.
+
+```python
+session.run(my_variable.initializer)
+```
+
+
+
+또한,아래와 같이 아직 초기화되지 않은 variable들을 모아볼 수도 있다.
+
+```python
+print(session.run(tf.report_uninitialized_variables()))
+```
+
+
+
+## Using variables
+
+`tf.Variable`를 사용할 때에는 그냥 `tf.Tensor`를 다루듯이 하면 된다.
+
+```python
+v = tf.get_variable("v", shape=(), initializer=tf.zeros_initializer())
+w = v + 1  # w is a tf.Tensor which is computed based on the value of v.
+           # Any time a variable is used in an expression it gets automatically
+           # converted to a tf.Tensor representing its value.
+```
+
+
+
+variable에 값을 대입하는 경우에는 `assign`, `assign_add`, 그리고 `tf.Variable`에 있는 것들을 사용하면 된다.
+
+```python
+v = tf.get_variable("v", shape=(), initializer=tf.zeros_initializer())
+assignment = v.assign_add(1)
+tf.global_variables_initializer().run()
+assignment.run()
+```
+
+
+
+variable들은 값이 바뀌기 때문에 한 시점에 어떤 버전의 값이 사용되었는지 아는 것이 유용할 수도 있다. variable에 어떤 operation을 한 이후에 값을 다시 읽고 싶을 때는 아래와 같이 `tf.Variable.read_value`를 사용하면 된다.
+
+```python
+v = tf.get_variable("v", shape=(), initializer=tf.zeros_initializer())
+assignment = v.assign_add(1)
+with tf.control_dependencies([assignment]):
+  w = v.read_value()  # w is guaranteed to reflect v's value after the
+                      # assign_add operation.
+```
+

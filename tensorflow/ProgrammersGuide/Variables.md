@@ -184,3 +184,87 @@ with tf.control_dependencies([assignment]):
                       # assign_add operation.
 ```
 
+
+
+## Sharing Variable
+
+Tensorflow는 variable을 공유하는 방법으로 다음 두가지를 제공한다:
+
+1. `tf.Variable` object를 명시적으로 넘긴다.
+   * 아주 명확하다는 장점이 있음
+2. `tf.Variable` object를  `tf.variable_scope`를 이용해 암시적으로 wrapping한다.
+   * 이 방식이 더 좋을 때가 많고, 대부분의 High-level API는 내부적으로 이러한 방식을 사용
+
+
+
+**Variable scope**는 variable을 암묵적으로 생성하고 사용하는 함수를 호출하는 경우에 variable을 control할 수 있게 해준다. 또한 variable의 이름을 계층적이고 이해하기 쉽게 정의할 수 있게 해준다.
+
+
+
+아래와 같이 conv layer를 정의하는 함수가 있다고 하자:
+
+```python
+def conv_relu(input, kernel_shape, bias_shape):
+    # Create variable named "weights".
+    weights = tf.get_variable("weights", kernel_shape,
+        initializer=tf.random_normal_initializer())
+    # Create variable named "biases".
+    biases = tf.get_variable("biases", bias_shape,
+        initializer=tf.constant_initializer(0.0))
+    conv = tf.nn.conv2d(input, weights,
+        strides=[1, 1, 1, 1], padding='SAME')
+    return tf.nn.relu(conv + biases)
+```
+
+위의 코드만 보면 variable에 "weights"와 같은 짧은 이름을 써서 명확해보인다. 하지만 실제 모델에서는 아래의 코드와 같이 이런 layer를 여러 개 사용하는 경우가 많아 저 함수를 여러번 호출하게 되는데 이때 문제가 발생한다.
+
+```python
+input1 = tf.random_normal([1,10,10,32])
+input2 = tf.random_normal([1,20,20,32])
+x = conv_relu(input1, kernel_shape=[5, 5, 1, 32], bias_shape=[32])
+x = conv_relu(x, kernel_shape=[5, 5, 32, 32], bias_shape = [32])  # This fails.
+```
+
+왜냐하면 아래의 코드가 같은 이름을 가진 새로운 variable을 생성해야할 지, 아니면 기존의 variable을 재사용해야할지 모호하기 때문이다. 이를 해결하기 위해 아래와 같이 `tf.variable_scope`를 사용할 수 있다.
+
+만약에 의도가 새로운 variable을 생성하여 새 layer를 추가하는 것이었다면 아래와 같이 하면 된다.
+
+```python
+def my_image_filter(input_images):
+    with tf.variable_scope("conv1"):
+        # Variables created here will be named "conv1/weights", "conv1/biases".
+        relu1 = conv_relu(input_images, [5, 5, 1, 32], [32])
+    with tf.variable_scope("conv2"):
+        # Variables created here will be named "conv2/weights", "conv2/biases".
+        return conv_relu(relu1, [5, 5, 32, 32], [32])
+```
+
+
+
+반면에 이미 만들어진 variable을 재사용하는 것이 목적이라면 아래와 같이 `reuse=True`를 추가로 넘겨주면 된다.
+
+```python
+with tf.variable_scope("model"):
+  output1 = my_image_filter(input1)
+with tf.variable_scope("model", reuse=True):
+  output2 = my_image_filter(input2)
+```
+
+혹은 위의 코드에서 `"model"`이라는 문자열을 반복하는 것이 싫다면 `scope.reuse_variables()`를 사용하거나 `tf.variable_scope`에 scope를 명시적으로 넘겨서 사용할 수도 있다.
+
+```python
+with tf.variable_scope("model") as scope:
+  output1 = my_image_filter(input1)
+  scope.reuse_variables()
+  output2 = my_image_filter(input2)
+```
+
+or
+
+```python
+with tf.variable_scope("model") as scope:
+  output1 = my_image_filter(input1)
+with tf.variable_scope(scope, reuse=True):
+  output2 = my_image_filter(input2)
+```
+
